@@ -33,6 +33,16 @@ async function run() {
         const notificationCollection = client.db('microDB').collection('notifications');
         const adminActivityCollection = client.db('microDB').collection('adminActivity');
 
+        app.get('/users', async (req, res) => {
+            try {
+                const users = req.query;
+                const result = await userCollection.find(users).toArray();
+                res.status(200).send(result);
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch users data' });
+            }
+        })
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
