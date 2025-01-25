@@ -33,15 +33,30 @@ async function run() {
         const notificationCollection = client.db('microDB').collection('notifications');
         const adminActivityCollection = client.db('microDB').collection('adminActivity');
 
+        // users related API's
         app.get('/users', async (req, res) => {
             try {
-                const users = req.query;
-                const result = await userCollection.find(users).toArray();
+                const result = await userCollection.find().toArray();
                 res.status(200).send(result);
             } catch (error) {
                 res.status(500).send({ message: 'Failed to fetch users data' });
             }
         })
+
+        app.post('/users', async (req, res) => {
+            try {
+                const newUser = req.body;
+                const result = await userCollection.insertOne(newUser);
+                if (result.insertedId) {
+                    res.status(201).send(result);
+                } else {
+                    res.status(400).send({ message: 'Failed to add new user' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to add new user' });
+            }
+        });
+        
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
