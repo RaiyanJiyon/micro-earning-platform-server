@@ -8,11 +8,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// micro
-// M12otNl41crjRZbS
-console.log(process.env.DB_USER)
-console.log(process.env.DB_PASS)
-
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.5qizv.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -29,6 +24,15 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
+
+        const userCollection = client.db('microDB').collection('users');
+        const taskCollection = client.db('microDB').collection('tasks');
+        const submissionCollection = client.db('microDB').collection('submissions');
+        const paymentCollection = client.db('microDB').collection('payments');
+        const withdrawalCollection = client.db('microDB').collection('withdrawals');
+        const notificationCollection = client.db('microDB').collection('notifications');
+        const adminActivityCollection = client.db('microDB').collection('adminActivity');
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
