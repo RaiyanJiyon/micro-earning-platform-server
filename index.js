@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config()
+require('dotenv').config();
 const port = process.env.PORT || 5000;
 const app = express();
 
-// middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -17,12 +17,12 @@ const client = new MongoClient(uri, {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
-    }
+    },
 });
 
 async function run() {
     try {
-        // Connect the client to the server	(optional starting in v4.7)
+        // Connect the client to the server
         await client.connect();
 
         const userCollection = client.db('microDB').collection('users');
@@ -33,7 +33,7 @@ async function run() {
         const notificationCollection = client.db('microDB').collection('notifications');
         const adminActivityCollection = client.db('microDB').collection('adminActivity');
 
-        // users related API's
+        // Users related APIs
         app.get('/users', async (req, res) => {
             try {
                 const result = await userCollection.find().toArray();
@@ -43,10 +43,37 @@ async function run() {
             }
         });
 
+        // Check if a user exists by email
+        app.get('/users/email/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+                const user = await userCollection.findOne({ email });
+
+                if (user) {
+                    res.status(200).send({ exists: true });
+                } else {
+                    res.status(200).send({ exists: false });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to check user existence' });
+            }
+        });
+
+        // Add a new user
         app.post('/users', async (req, res) => {
             try {
                 const newUser = req.body;
+
+                // Check if the user already exists
+                const existingUser = await userCollection.findOne({ email: newUser.email });
+
+                if (existingUser) {
+                    return res.status(400).send({ message: 'User already exists' });
+                }
+
+                // Insert new user into the collection
                 const result = await userCollection.insertOne(newUser);
+
                 if (result.insertedId) {
                     res.status(201).send(result);
                 } else {
@@ -57,36 +84,35 @@ async function run() {
             }
         });
 
-        const { ObjectId } = require('mongodb');
-
+        // Delete a user by ID
         app.delete('/users/:id', async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
                 const result = await userCollection.deleteOne(query);
+
                 if (result.deletedCount > 0) {
                     res.status(204).send();
                 } else {
-                    res.status(404).send({ message: 'User not found' }); 
+                    res.status(404).send({ message: 'User not found' });
                 }
             } catch (error) {
                 res.status(500).send({ message: 'Failed to delete user' });
             }
         });
-        
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        await client.db('admin').command({ ping: 1 });
+        console.log('Pinged your deployment. You successfully connected to MongoDB!');
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
     }
 }
+
 run().catch(console.dir);
 
-
-// basic API
+// Basic API
 app.get('/', (req, res) => {
     res.send('Hello Micro Earning Pro');
 });
