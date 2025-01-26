@@ -49,8 +49,7 @@ async function run() {
                 const email = req.params.email;
                 const query = { email: email };
                 const result = await userCollection.findOne(query);
-                console.log("...",result, query)
-        
+                        
                 if (result) {
                     // Include role-specific fields in the response
                     res.status(200).send({
