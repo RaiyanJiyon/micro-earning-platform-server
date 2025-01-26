@@ -59,6 +59,17 @@ async function run() {
             }
         });
 
+        app.get('/users/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = {_id : new ObjectId(id)};
+                const result = await userCollection.findOne(query);
+                res.status(200).send(result);
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch user data' });
+            }
+        })
+
         // Add a new user
         app.post('/users', async (req, res) => {
             try {
