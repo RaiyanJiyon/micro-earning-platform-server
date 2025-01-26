@@ -43,32 +43,30 @@ async function run() {
             }
         });
 
-        // Check if a user exists by email
-        app.get('/users/email/:email', async (req, res) => {
+        // user role related API
+        app.get('/users/:email', async (req, res) => {
             try {
                 const email = req.params.email;
-                const user = await userCollection.findOne({ email });
-
-                if (user) {
-                    res.status(200).send({ exists: true });
+                const query = { email: email };
+                const result = await userCollection.findOne(query);
+                console.log("...",result, query)
+        
+                if (result) {
+                    // Include role-specific fields in the response
+                    res.status(200).send({
+                        ...result,
+                        isAdmin: result.role === 'Admin',
+                        isWorker: result.role === 'Worker',
+                        isBuyer: result.role === 'Buyer',
+                    });
                 } else {
-                    res.status(200).send({ exists: false });
+                    res.status(404).send({ message: 'User not found' });
                 }
             } catch (error) {
-                res.status(500).send({ message: 'Failed to check user existence' });
-            }
-        });
-
-        app.get('/users/:id', async (req, res) => {
-            try {
-                const id = req.params.id;
-                const query = {_id : new ObjectId(id)};
-                const result = await userCollection.findOne(query);
-                res.status(200).send(result);
-            } catch (error) {
+                console.error('Error fetching user data:', error);
                 res.status(500).send({ message: 'Failed to fetch user data' });
             }
-        })
+        });
 
         // Add a new user
         app.post('/users', async (req, res) => {
