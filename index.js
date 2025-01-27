@@ -164,7 +164,7 @@ async function run() {
             try {
                 const buyer_id = req.params.buyer_id;
                 const query = { buyer_id: buyer_id };
-                const result = await taskCollection.findOne(query);
+                const result = await taskCollection.find(query).toArray();
                 
                 if (result) {
                     res.status(200).send(result);
