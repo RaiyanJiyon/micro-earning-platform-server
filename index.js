@@ -93,7 +93,7 @@ async function run() {
         });
 
         // Delete a user by ID
-        app.delete('/users/:id', async (req, res) => {
+        app.delete('/user/:id', async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
@@ -109,31 +109,89 @@ async function run() {
             }
         });
 
+        // Reduce user's coins
+        app.patch('/users/:userId/reduce-coins', async (req, res) => {
+            try {
+                const userId = req.params.userId;
+                const { amount } = req.body;
+
+                // Validate the amount
+                if (typeof amount !== 'number' || amount <= 0) {
+                    return res.status(400).send({ message: 'Invalid amount' });
+                }
+
+                // Find the user
+                const user = await userCollection.findOne({ _id: new ObjectId(userId) });
+
+                if (!user) {
+                    return res.status(404).send({ message: 'User not found' });
+                }
+
+                // Check if the user has enough coins
+                if (user.coins < amount) {
+                    return res.status(400).send({ message: 'Not enough coins' });
+                }
+
+                // Reduce the user's coins
+                const updatedCoins = user.coins - amount;
+                const result = await userCollection.updateOne(
+                    { _id: new ObjectId(userId) },
+                    { $set: { coins: updatedCoins } }
+                );
+
+                if (result.modifiedCount > 0) {
+                    res.status(200).send({ message: 'Coins reduced successfully', coins: updatedCoins });
+                } else {
+                    res.status(400).send({ message: 'Failed to reduce coins' });
+                }
+            } catch (error) {
+                console.error('Error reducing coins:', error);
+                res.status(500).send({ message: 'Failed to reduce coins' });
+            }
+        });
+
         // Tasks related APIs
         app.get('/tasks', async (req, res) => {
             try {
                 const result = await taskCollection.find().toArray();
                 res.status(200).send(result);
             } catch (error) {
-                res.status(500).send({message: 'Failed to fetch tasks data'});
+                res.status(500).send({ message: 'Failed to fetch tasks data' });
             }
         });
+
+        app.get('/tasks/:buyer_id', async (req, res) => {
+            try {
+                const buyer_id = req.params.buyer_id;
+                const query = { buyer_id: buyer_id };
+                const result = await taskCollection.findOne(query);
+                
+                if (result) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'No task found for the given buyer ID' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch task data' });
+            }
+        });
+        
 
         app.post('/tasks', async (req, res) => {
             try {
                 const newTask = req.body;
                 const result = await taskCollection.insertOne(newTask);
-                
+
                 if (result.insertedId) {
                     res.status(200).send(result);
                 } else {
-                    res.status(400).send({message: 'Failed to add new task'})
+                    res.status(400).send({ message: 'Failed to add new task' })
                 }
             } catch (error) {
-                res.status(500).send({message: 'Failed to add new task'})
+                res.status(500).send({ message: 'Failed to add new task' })
             }
         });
-        
+
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
         console.log('Pinged your deployment. You successfully connected to MongoDB!');
