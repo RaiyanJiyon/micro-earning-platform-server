@@ -119,6 +119,21 @@ async function run() {
             }
         });
 
+        app.post('/tasks', async (req, res) => {
+            try {
+                const newTask = req.body;
+                const result = await taskCollection.insertOne(newTask);
+                
+                if (result.insertedId) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(400).send({message: 'Failed to add new task'})
+                }
+            } catch (error) {
+                res.status(500).send({message: 'Failed to add new task'})
+            }
+        });
+        
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
         console.log('Pinged your deployment. You successfully connected to MongoDB!');
