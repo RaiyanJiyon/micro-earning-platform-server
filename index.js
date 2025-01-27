@@ -237,17 +237,52 @@ async function run() {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
+        
+                // Fetch the task to calculate the refill amount
+                const task = await taskCollection.findOne(query);
+                if (!task) {
+                    return res.status(404).send({ message: 'Task not found' });
+                }
+        
+                // Calculate refill amount
+                const refillAmount = task.required_workers * task.payable_amount;
+        
+                // Update the user's available coin
+                const userQuery = { _id: new ObjectId(task.buyer_id) };
+                const userUpdate = { $inc: { available_coin: refillAmount } };
+                await userCollection.updateOne(userQuery, userUpdate);
+        
+                // Delete the task
                 const result = await taskCollection.deleteOne(query);
-
+        
                 if (result.deletedCount === 1) {
-                    res.status(200).send(result);
+                    res.status(200).send({ message: 'Task deleted and coins refunded successfully' });
                 } else {
                     res.status(404).send({ message: 'Task not found' });
                 }
             } catch (error) {
-                res.status(500).send({ message: 'Failed to delete task data' });
+                res.status(500).send({ message: 'Failed to delete task data', error: error.message });
             }
         });
+
+
+        /*
+        -------------------payment related API-------------------------
+        */ 
+        app.get('/payments', async (req, res) => {
+            try {
+                const result = await paymentCollection.find().toArray();
+        
+                if (result.length > 0) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'No payments found' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'An error occurred while retrieving payments' });
+            }
+        });
+        
 
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
