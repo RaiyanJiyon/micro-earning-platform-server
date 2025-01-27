@@ -160,12 +160,28 @@ async function run() {
             }
         });
 
+        app.get('/task/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const result = await taskCollection.findOne(query);
+
+                if (result) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'No task found for the given ID' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to fetch task data' });
+            }
+        });
+
         app.get('/tasks/:buyer_id', async (req, res) => {
             try {
                 const buyer_id = req.params.buyer_id;
                 const query = { buyer_id: buyer_id };
                 const result = await taskCollection.find(query).toArray();
-                
+
                 if (result) {
                     res.status(200).send(result);
                 } else {
@@ -175,7 +191,7 @@ async function run() {
                 res.status(500).send({ message: 'Failed to fetch task data' });
             }
         });
-        
+
 
         app.post('/tasks', async (req, res) => {
             try {
@@ -192,12 +208,37 @@ async function run() {
             }
         });
 
+        app.patch('/task/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const filter = { _id: new ObjectId(id) };
+                const updateTask = {
+                    $set: {
+                        task_title: req.body.task_title,
+                        task_detail: req.body.task_detail,
+                        submission_info: req.body.submission_info
+                    },
+                };
+                
+                const result = await taskCollection.updateOne(filter, updateTask);
+        
+                if (result.modifiedCount === 1) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'Task not found or no changes made' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to update task data' });
+            }
+        });
+        
+
         app.delete('/task/:id', async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
                 const result = await taskCollection.deleteOne(query);
-        
+
                 if (result.deletedCount === 1) {
                     res.status(200).send(result);
                 } else {
@@ -207,7 +248,7 @@ async function run() {
                 res.status(500).send({ message: 'Failed to delete task data' });
             }
         });
-        
+
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
         console.log('Pinged your deployment. You successfully connected to MongoDB!');
