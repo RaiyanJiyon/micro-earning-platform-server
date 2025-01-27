@@ -49,7 +49,7 @@ async function run() {
                 const email = req.params.email;
                 const query = { email: email };
                 const result = await userCollection.findOne(query);
-                        
+
                 if (result) {
                     // Include role-specific fields in the response
                     res.status(200).send({
@@ -106,6 +106,16 @@ async function run() {
                 }
             } catch (error) {
                 res.status(500).send({ message: 'Failed to delete user' });
+            }
+        });
+
+        // Tasks related APIs
+        app.get('/tasks', async (req, res) => {
+            try {
+                const result = await taskCollection.find().toArray();
+                res.status(200).send(result);
+            } catch (error) {
+                res.status(500).send({message: 'Failed to fetch tasks data'});
             }
         });
 
