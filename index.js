@@ -76,6 +76,28 @@ async function run() {
             next();
         }
 
+        const verifyWorker = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isWorker = user?.role === 'Worker';
+            if (!isWorker) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+            next();
+        };
+        
+        const verifyBuyer = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isBuyer = user?.role === 'Buyer';
+            if (!isBuyer) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+            next();
+        };
+
         /*
         -------------------Users related APIs-------------------------
         */
