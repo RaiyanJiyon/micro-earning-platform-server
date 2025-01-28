@@ -314,7 +314,23 @@ async function run() {
             } catch (error) {
                 res.status(500).send({ message: 'An error occurred while retrieving submissions data' });
             }
-        })
+        });
+
+        app.post('/submissions', async (req, res) => {
+            try {
+                const newSubmission = req.body;
+                const result = await submissionCollection.insertOne(newSubmission);
+        
+                if (result.insertedId) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(400).send({ message: 'Failed to add new submission' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'Failed to add new submission' });
+            }
+        });
+        
 
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
