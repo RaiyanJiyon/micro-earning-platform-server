@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+var jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 const app = express();
@@ -33,7 +34,51 @@ async function run() {
         const notificationCollection = client.db('microDB').collection('notifications');
         const adminActivityCollection = client.db('microDB').collection('adminActivity');
 
-        // Users related APIs
+        /*
+        -------------------JWT related APIs-------------------------
+        */
+        app.post('/jwt', async (req, res) => {
+            try {
+                const user = req.body;
+                const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+                res.status(200).send({ token }); // Send token as a JSON object
+            } catch (error) {
+                console.error(error); // Log the error for debugging
+                res.status(400).send({ message: 'Failed to generate JWT' });
+            }
+        });
+
+        // middleware
+        const verifyToken = (req, res, next) => {
+            console.log('Header Authorization: ', req.headers.authorization)
+            const authHeader = req.headers.authorization;
+            if (!authHeader) {
+                return res.status(401).send({ message: 'Forbidden access' });
+            }
+            const token = authHeader.split(' ')[1];
+            jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
+                if (err) {
+                    return res.status(403).send({ message: 'Invalid token' });
+                }
+                req.decoded = decode;
+                next()
+            })
+        }
+
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isAdmin = user?.role === 'Admin';
+            if (!isAdmin) {
+                return res.status(403).send({ message: 'Forbidden access' });
+            }
+            next();
+        }
+
+        /*
+        -------------------Users related APIs-------------------------
+        */
         app.get('/users', async (req, res) => {
             try {
                 const result = await userCollection.find().toArray();
@@ -150,7 +195,9 @@ async function run() {
             }
         });
 
-        // Tasks related APIs
+        /*
+        -------------------Tasks related APIs-------------------------
+        */
         app.get('/tasks', async (req, res) => {
             try {
                 const result = await taskCollection.find().toArray();
@@ -330,13 +377,13 @@ async function run() {
             } catch (error) {
                 res.status(500).send({ message: 'An error occurred while retrieving submissions' });
             }
-        });  
+        });
 
         app.post('/submissions', async (req, res) => {
             try {
                 const newSubmission = req.body;
                 const result = await submissionCollection.insertOne(newSubmission);
-        
+
                 if (result.insertedId) {
                     res.status(200).send(result);
                 } else {
@@ -346,7 +393,7 @@ async function run() {
                 res.status(500).send({ message: 'Failed to add new submission' });
             }
         });
-        
+
 
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
