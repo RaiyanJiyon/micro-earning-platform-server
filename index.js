@@ -316,6 +316,22 @@ async function run() {
             }
         });
 
+        app.get('/submissions/:worker_email', async (req, res) => {
+            try {
+                const worker_email = req.params.worker_email;
+                const query = { worker_email: worker_email };
+                const result = await submissionCollection.find(query).toArray();
+
+                if (result.length > 0) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'No submission found for this user' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'An error occurred while retrieving submissions' });
+            }
+        });  
+
         app.post('/submissions', async (req, res) => {
             try {
                 const newSubmission = req.body;
