@@ -300,6 +300,22 @@ async function run() {
         });
 
 
+        /*
+        -------------------Users related APIs-------------------------
+        */
+        app.get('/submissions', async (req, res) => {
+            try {
+                const result = await submissionCollection.find().toArray();
+                if (result.length > 0) {
+                    res.status(200).send(result);
+                } else {
+                    res.status(404).send({ message: 'No submissions data found' });
+                }
+            } catch (error) {
+                res.status(500).send({ message: 'An error occurred while retrieving submissions data' });
+            }
+        })
+
         // Send a ping to confirm a successful connection
         await client.db('admin').command({ ping: 1 });
         console.log('Pinged your deployment. You successfully connected to MongoDB!');
