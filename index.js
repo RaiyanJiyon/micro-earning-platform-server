@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server
-        await client.connect();
+        // await client.connect();
 
         const userCollection = client.db('microDB').collection('users');
         const taskCollection = client.db('microDB').collection('tasks');
@@ -137,25 +137,31 @@ async function run() {
             }
         });
 
-        // Delete a user by ID
-        app.delete('/user/:id', async (req, res) => {
+        app.delete('/user/:id', verifyToken, verifyAdmin, async (req, res) => {
             try {
                 const id = req.params.id;
+        
+                // Validate the ID
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).send({ message: 'Invalid user ID' });
+                }
+        
                 const query = { _id: new ObjectId(id) };
                 const result = await userCollection.deleteOne(query);
-
+        
                 if (result.deletedCount > 0) {
-                    res.status(204).send();
+                    res.status(200).send({ message: 'User deleted successfully' }); // Send 200 with a success message
                 } else {
                     res.status(404).send({ message: 'User not found' });
                 }
             } catch (error) {
-                res.status(500).send({ message: 'Failed to delete user' });
+                console.error('Error deleting user:', error);
+                res.status(500).send({ message: 'Failed to delete user', error: error.message }); // Include error details
             }
         });
 
         // Reduce user's coins
-        app.patch('/users/:userId/reduce-coins', async (req, res) => {
+        app.patch('/users/:userId/reduce-coins', verifyToken, async (req, res) => {
             try {
                 const userId = req.params.userId;
                 const { amount } = req.body;
@@ -255,7 +261,7 @@ async function run() {
             }
         });
 
-        app.patch('/task/:id', async (req, res) => {
+        app.patch('/task/:id', verifyToken, async (req, res) => {
             try {
                 const id = req.params.id;
                 const filter = { _id: new ObjectId(id) };
@@ -280,7 +286,7 @@ async function run() {
         });
 
 
-        app.delete('/task/:id', async (req, res) => {
+        app.delete('/task/:id', verifyToken, async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
@@ -312,11 +318,10 @@ async function run() {
             }
         });
 
-
         /*
         -------------------payment related API-------------------------
         */
-        app.get('/payments', async (req, res) => {
+        app.get('/payments', verifyToken, async (req, res) => {
             try {
                 const result = await paymentCollection.find().toArray();
 
@@ -330,7 +335,7 @@ async function run() {
             }
         });
 
-        app.get('/payments/:userId', async (req, res) => {
+        app.get('/payments/:userId', verifyToken, async (req, res) => {
             try {
                 const id = req.params.userId;
                 const query = { userId: id };
@@ -348,7 +353,7 @@ async function run() {
 
 
         /*
-        -------------------Users related APIs-------------------------
+        -------------------Submission related APIs-------------------------
         */
         app.get('/submissions', async (req, res) => {
             try {
@@ -379,7 +384,29 @@ async function run() {
             }
         });
 
-        app.post('/submissions', async (req, res) => {
+        app.get('/submissions/buyer/:buyer_email', async (req, res) => {
+            try {
+                const buyer_email = req.params.buyer_email;
+                console.log(`Fetching submissions for buyer_email: ${buyer_email}`);
+        
+                const query = { buyer_email: buyer_email };
+                const result = await submissionCollection.find(query).toArray();
+                
+                if (result.length > 0) {
+                    console.log(`Found ${result.length} submissions`);
+                    res.status(200).send(result);
+                } else {
+                    console.log('No submission found for this buyer');
+                    res.status(404).send({ message: 'No submission found for this buyer' });
+                }
+            } catch (error) {
+                console.error('Error occurred while retrieving submissions:', error);
+                res.status(500).send({ message: 'An error occurred while retrieving submissions' });
+            }
+        });
+        
+
+        app.post('/submissions', verifyToken, async (req, res) => {
             try {
                 const newSubmission = req.body;
                 const result = await submissionCollection.insertOne(newSubmission);
@@ -394,9 +421,8 @@ async function run() {
             }
         });
 
-
         // Send a ping to confirm a successful connection
-        await client.db('admin').command({ ping: 1 });
+        // await client.db('admin').command({ ping: 1 });
         console.log('Pinged your deployment. You successfully connected to MongoDB!');
     } finally {
         // Ensures that the client will close when you finish/error
